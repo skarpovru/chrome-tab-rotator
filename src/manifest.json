@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Tabs Rotator",
+  "version": "1.0",
+  "description": "Rotate through a set of URLs at specified intervals.",
+  "permissions": ["tabs", "storage", "activeTab", "webNavigation", "scripting"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+      "default_popup": "index.html"
+  },
+  "icons": {
+    "16": "assets/icons/change-exchange-icon-16.png",
+    "48": "assets/icons/change-exchange-icon-48.png",
+    "96": "assets/icons/change-exchange-icon-96.png",
+    "128": "assets/icons/change-exchange-icon-128.png"
+  }
+}
