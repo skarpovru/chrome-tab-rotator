@@ -1,7 +1,27 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  width: 800px;  /* max: 800px */
-  height: 600px; /* max: 600px */
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  width: 780px; /* max: 800px */
+  //height: 600px; /* max: 600px */
   overflow: hidden; /* Prevent scrolling */
+}
+
+/* Hide the arrows for number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
 }
