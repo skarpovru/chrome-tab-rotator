@@ -27,77 +27,9 @@
     <h2 class="text-primary text-lg font-medium leading-tight">
       Current Configuration
     </h2>
-    <form
-      [formGroup]="configForm"
-      (ngSubmit)="saveConfig($event)"
-      class="flex flex-col w-full gap-2"
-    >
-      <table class="table-auto w-full text-md">
-        <thead>
-          <tr>
-            <th class="min-w-100">URL</th>
-            <th class="w-20 max-w-20 text-sm">Display Time (seconds)</th>
-            <th class="w-20 max-w-20 text-sm">Reload Interval (seconds)</th>
-            <th class="w-10 max-w-10 text-sm"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let page of dataSource; let i = index">
-            <td class="min-w-100">
-              <input
-                type="text"
-                [formControl]="getFormControl(page, 'url')"
-                required
-                id="urlInput{{ i }}"
-                title="URL"
-                placeholder="Enter URL"
-                class="w-full bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
-              />
-            </td>
-            <td class="w-20 max-w-20">
-              <input
-                type="number"
-                [formControl]="getFormControl(page, 'delay')"
-                required
-                class="w-full bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
-              />
-            </td>
-            <td class="w-20 max-w-20">
-              <input
-                type="number"
-                [formControl]="getFormControl(page, 'reloadInterval')"
-                required
-                class="w-full bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
-              />
-            </td>
-            <td class="w-10 max-w-10 flex flex-row">
-              <button
-                type="button"
-                class="p-1 rounded-full bg-white text-warn hover:bg-warn-900"
-                (click)="deletePage(i)"
-              >
-                <span class="text-lg">✖</span>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="flex justify-end flex-wrap gap-2">
-        <button
-          class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-ghost text-primary hover:bg-secondary-600"
-          type="button"
-          (click)="addPage()"
-        >
-          Add URL
-        </button>
-        <button
-          class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-primary text-white hover:bg-primary-600"
-          type="submit"
-        >
-          Save Configuration
-        </button>
-      </div>
-    </form>
+    <app-config-editor
+      [value]="configData"
+      (valueChanges)="saveConfig($event)"
+    ></app-config-editor>
   </div>
 </div>

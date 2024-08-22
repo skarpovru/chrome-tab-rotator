@@ -5,15 +5,9 @@ import {
   Component,
   OnInit,
 } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  FormArray,
-  Validators,
-  ReactiveFormsModule,
-  AbstractControl,
-  FormControl,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ConfigEditorComponent } from './config-editor/config-editor.component';
+import { ConfigData } from './models';
 
 @Component({
   selector: 'app-root',
@@ -21,21 +15,13 @@ import {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ConfigEditorComponent],
 })
 export class AppComponent implements OnInit {
-  configForm: FormGroup;
-  dataSource: FormGroup[] = [];
-  isRotating = false; // Add this variable
+  configData: ConfigData = new ConfigData();
+  isRotating = false;
 
-  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
-    this.configForm = this.fb.group({
-      pages: this.fb.array([]),
-    });
-
-    this.dataSource = (this.configForm.get('pages') as FormArray)
-      .controls as FormGroup[];
-  }
+  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.displayCurrentConfig();
@@ -43,82 +29,29 @@ export class AppComponent implements OnInit {
     this.queryRotationState();
   }
 
-  get pages(): FormArray {
-    return this.configForm.get('pages') as FormArray;
-  }
-
   displayCurrentConfig() {
     chrome.storage.local.get('pages', (result) => {
-      const pages = result['pages'] || [];
-
-      if (pages.length === 0) {
-        // Start by default with one empty page
-        this.addNewPage();
-      } else {
-        this.pages.clear();
-        pages.forEach((page: any) => {
-          this.pages.push(
-            this.fb.group({
-              url: [page.url, Validators.required],
-              delay: [page.delay, Validators.required],
-              reloadInterval: [page.reloadInterval, Validators.required],
-            })
-          );
-        });
-      }
-
-      this.updateDataSource();
+      this.configData = new ConfigData({ pages: result['pages'] || []});
+      console.log('Configuration loaded', this.configData);
+      this.cdr.detectChanges();
     });
   }
 
-  addPage() {
-    this.addNewPage();
-    this.updateDataSource();
-    console.log('Added page', this.pages.controls);
-  }
-
-  deletePage(index: number) {
-    this.pages.removeAt(index);
-    this.updateDataSource();
-  }
-
-  saveConfig(event: Event) {
-    event.preventDefault();
-    if (this.configForm.invalid) {
-      alert('Please fill in all fields.');
-      return;
-    }
-
-    const pages = this.configForm.value.pages;
-    chrome.storage.local.set({ pages }, () => {
-      console.log('Configuration saved');
+  saveConfig(configData: ConfigData) {
+    chrome.storage.local.set({ pages: configData.pages }, () => {
+      console.log('Configuration saved', configData);
       this.displayCurrentConfig();
     });
   }
 
   startRotation() {
     chrome.runtime.sendMessage({ action: 'rotateTabs' });
-    this.isRotating = true; // Set to true when rotation starts
+    this.isRotating = true;
   }
 
   stopRotation() {
     chrome.runtime.sendMessage({ action: 'stopRotation' });
-    this.isRotating = false; // Set to false when rotation stops
-  }
-
-  private addNewPage() {
-    this.pages.push(
-      this.fb.group({
-        url: ['', Validators.required],
-        delay: ['', Validators.required],
-        reloadInterval: ['', Validators.required],
-      })
-    );
-  }
-
-  private updateDataSource() {
-    this.dataSource = this.pages.controls as FormGroup[];
-    this.cdr.detectChanges();
+    this.isRotating = false;
   }
 
   private queryRotationState() {
@@ -126,10 +59,6 @@ export class AppComponent implements OnInit {
       this.isRotating = response.isRotating;
       this.cdr.detectChanges();
     });
-  }
-
-  getFormControl(page: FormGroup, controlName: string): FormControl {
-    return page.get(controlName) as FormControl;
   }
 
   private listenForRotationState() {

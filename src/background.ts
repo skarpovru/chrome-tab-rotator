@@ -1,4 +1,6 @@
-let pages: { url: string; delay: number; reloadInterval: number }[] = [];
+import { PageConfig } from './app/models';
+
+let pages: PageConfig[] = [];
 const maxRetries = 1;
 let tabIds: number[] = [];
 let currentIndex = 0;
