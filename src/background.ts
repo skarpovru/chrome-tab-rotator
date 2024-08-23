@@ -1,42 +1,79 @@
-import { PageConfig } from './app/models';
+import {
+  ConfigData,
+  RemoteSettings,
+  StorageKeys,
+  TabConfig,
+  TabsConfig,
+} from './app/models';
 
-let pages: PageConfig[] = [];
 const maxRetries = 1;
-let tabIds: number[] = [];
+const defaultFailedPageReloadIntervalSeconds = 120;
 let currentIndex = 0;
-let reloadTimers: (number | ReturnType<typeof setInterval>)[] = [];
-let retryCount = 0;
 let rotationTimeout: ReturnType<typeof setTimeout>;
 let isRotating = false;
+let tabsConfig: TabsConfig;
+let configUpdateInterval: ReturnType<typeof setInterval>;
+
+function setRotationState(rotating: boolean) {
+  isRotating = rotating;
+  chrome.runtime.sendMessage({ action: 'rotationState', isRotating }); // Send rotation state
+}
 
 function rotateTabs() {
   console.log('rotateTabs called, isRotating:', isRotating);
-  if (!isRotating) {
+  if (
+    !isRotating ||
+    !tabsConfig ||
+    !tabsConfig.tabs ||
+    tabsConfig.tabs.length === 0
+  ) {
     console.error('Rotation is not active.');
     return;
   }
 
-  chrome.storage.local.get('pages', (result) => {
-    pages = result['pages'] || [];
+  console.log('rotateTabs called', tabsConfig.tabs[currentIndex]);
+  const currentTab = tabsConfig.tabs[currentIndex];
+  if (currentTab !== undefined && !currentTab.skip) {
+    chrome.tabs.update(currentTab.tabId, { active: true });
+    const currentDelay = currentTab.page.delay * 1000;
+    currentIndex = (currentIndex + 1) % tabsConfig.tabs.length;
+    console.info('rotationTimeout currentDelay:', currentDelay);
+    rotationTimeout = setTimeout(rotateTabs, currentDelay);
+  } else if (currentTab?.skip) {
+    // Skip the tab and move to the next one
+    currentIndex = (currentIndex + 1) % tabsConfig.tabs.length;
+    rotateTabs();
+  } else {
+    console.error('Invalid tab ID:', currentTab.tabId);
+    currentIndex = (currentIndex + 1) % tabsConfig.tabs.length;
+    rotateTabs();
+  }
+}
 
-    if (tabIds.length === 0) {
-      console.error('No tabs available for rotation.');
-      isRotating = false;
-      chrome.runtime.sendMessage({ action: 'rotationState', isRotating }); // Send rotation state
-      return;
-    }
-
-    console.log('rotateTabs called', tabIds[currentIndex]);
-    if (tabIds[currentIndex] !== undefined) {
-      chrome.tabs.update(tabIds[currentIndex], { active: true });
-      const currentDelay = pages[currentIndex].delay * 1000;
-      currentIndex = (currentIndex + 1) % pages.length;
-      console.info('rotationTimeout currentDelay:', currentDelay);
-      rotationTimeout = setTimeout(rotateTabs, currentDelay);
+function loadActualConfigurationFromLocalStorage(
+  callback: (
+    loadedConfig: ConfigData,
+    loadedRemoteSettings?: RemoteSettings
+  ) => void
+) {
+  chrome.storage.local.get([StorageKeys.UseRemoteConfig], (result) => {
+    const loadedUseRemoteConfig = result[StorageKeys.UseRemoteConfig] || false;
+    if (loadedUseRemoteConfig) {
+      chrome.storage.local.get(
+        [StorageKeys.RemoteSettings, StorageKeys.RemoteConfig],
+        (result) => {
+          let loadedRemoteSettings =
+            (result?.[StorageKeys.RemoteSettings] as RemoteSettings) ||
+            new RemoteSettings();
+          const loadedConfig = result?.[StorageKeys.RemoteConfig] as ConfigData;
+          callback(loadedConfig, loadedRemoteSettings);
+        }
+      );
     } else {
-      console.error('Invalid tab ID:', tabIds[currentIndex]);
-      currentIndex = (currentIndex + 1) % pages.length;
-      rotateTabs();
+      chrome.storage.local.get(StorageKeys.LocalConfig, (result) => {
+        const loadedConfig = result?.[StorageKeys.LocalConfig] as ConfigData;
+        callback(loadedConfig);
+      });
     }
   });
 }
@@ -44,76 +81,116 @@ function rotateTabs() {
 function stopRotation() {
   console.log('stopRotation called');
   clearTimeout(rotationTimeout);
-  isRotating = false;
-  chrome.runtime.sendMessage({ action: 'rotationState', isRotating }); // Send rotation state
-  reloadTimers.forEach((timer) => clearInterval(timer as number));
-  reloadTimers = [];
-  tabIds.forEach((tabId) => {
-    if (tabId !== undefined) {
-      chrome.tabs.remove(tabId);
+  setRotationState(false);
+  // Clear all tabs and timers
+  tabsConfig?.tabs?.forEach((tabConfig) => {
+    if (tabConfig.reloadTimer) {
+      clearInterval(tabConfig.reloadTimer as number);
+      tabConfig.reloadTimer = undefined;
+      tabConfig.retryCount = 0;
     }
+    chrome.tabs.remove(tabConfig.tabId);
   });
-  tabIds = [];
   currentIndex = 0;
-  retryCount = 0;
 }
 
-function createTabs(callback: () => void) {
-  let createdTabs = 0;
-  pages.forEach((page, index) => {
+function createTabs(
+  configData: ConfigData,
+  callback: (createdTabsConfig: TabsConfig) => void
+) {
+  const newTabsConfig = new TabsConfig();
+  if (!configData?.pages || configData.pages.length === 0) {
+    // No pages available for rotation
+    callback(newTabsConfig);
+    return;
+  }
+  configData.pages.forEach((page, index) => {
     chrome.tabs.create({ url: page.url, active: index === 0 }, (tab) => {
       console.log('Tab created:', tab);
-      tabIds[index] = tab.id!;
-      createdTabs++;
-      if (createdTabs === pages.length) {
-        callback();
+      const tabConfig = new TabConfig({
+        page,
+        tabId: tab.id!,
+        active: index === 0,
+      });
+      newTabsConfig.tabs.push(tabConfig);
+      if (newTabsConfig.tabs.length === configData.pages.length) {
+        callback(newTabsConfig);
       }
     });
   });
 }
 
-function startReloadTimers() {
-  pages.forEach((page, index) => {
-    if (page.reloadInterval) {
-      reloadTimers[index] = setInterval(() => {
-        chrome.tabs.reload(tabIds[index]);
-      }, page.reloadInterval * 1000);
-    }
-  });
-}
+function onHandleError(tabId: number, errorUrl: string) {
+  console.info('Page failed to load in tabId, errorUrl', tabId, errorUrl);
 
-function handleError(tabId: number, errorUrl: string) {
-  console.info('handleError tabId, errorUrl', tabId, errorUrl);
-
-  const pageIndex = tabIds.indexOf(tabId);
-  if (
-    pageIndex !== -1 &&
-    pages[pageIndex] &&
-    pages[pageIndex].url === errorUrl
-  ) {
-    if (retryCount < maxRetries) {
-      retryCount++;
-      chrome.tabs.update(tabId, { url: errorUrl });
+  const tabConfig = tabsConfig?.tabs?.find((tab) => tab.tabId === tabId);
+  if (tabConfig && tabConfig.page.url === errorUrl) {
+    if (tabConfig.retryCount < maxRetries) {
+      tabConfig.retryCount++;
+      chrome.tabs.update(tabId, { url: tabConfig.page.url });
     } else {
-      retryCount = 0;
-      clearInterval(reloadTimers[pageIndex] as number);
-      reloadTimers.splice(pageIndex, 1);
-      tabIds.splice(pageIndex, 1);
-      pages.splice(pageIndex, 1);
+      tabConfig.retryCount = 0;
+      tabConfig.skip = true;
+      removeReloadTimer(tabConfig);
+
+      // Set a special reload interval for the failed page.
+      // If regular reload interval is shorter than the failed page reload interval, then use it
+      const failedPageReloadIntervalSeconds =
+        tabConfig.page.reloadInterval > 0 &&
+        defaultFailedPageReloadIntervalSeconds > tabConfig.page.reloadInterval
+          ? tabConfig.page.reloadInterval
+          : defaultFailedPageReloadIntervalSeconds;
+
+      tabConfig.reloadTimer = setInterval(() => {
+        chrome.tabs.reload(tabConfig.tabId);
+      }, failedPageReloadIntervalSeconds * 1000);
+
       console.info('Tab removed from rotation due to repeated errors:', tabId);
-      if (currentIndex >= tabIds.length) {
-        currentIndex = 0;
-      }
-      chrome.tabs.remove(tabId);
     }
   } else {
-    console.error('Invalid tabId or page not found for tabId:', tabId);
+    //console.error('Invalid tabId or page not found for tabId:', tabId);
+  }
+}
+
+function removeReloadTimer(tabConfig: TabConfig) {
+  if (tabConfig.reloadTimer) {
+    clearInterval(tabConfig.reloadTimer as number);
+    tabConfig.reloadTimer = undefined;
+  }
+}
+
+function onPageLoaded(tabId: number, url: string) {
+  console.info('Page loaded in tabId', tabId);
+
+  const tabConfig = tabsConfig?.tabs?.find((tab) => tab.tabId === tabId);
+  if (tabConfig && tabConfig.page.url === url) {
+    tabConfig.retryCount = 0;
+    tabConfig.skip = false;
+    removeReloadTimer(tabConfig);
+    // Set a reload interval for the page.
+    if (tabConfig.page.reloadInterval && tabConfig.page.reloadInterval > 0) {
+      tabConfig.reloadTimer = setInterval(() => {
+        chrome.tabs.reload(tabConfig.tabId);
+      }, tabConfig.page.reloadInterval * 1000);
+    }
+
+    console.info('Tab removed from rotation due to repeated errors:', tabId);
+  } else {
+    //console.error('Invalid tabId or page not found for tabId:', tabId);
   }
 }
 
 if (chrome.webNavigation && chrome.webNavigation.onErrorOccurred) {
   chrome.webNavigation.onErrorOccurred.addListener((details) => {
-    handleError(details.tabId, details.url);
+    onHandleError(details.tabId, details.url);
+  });
+} else {
+  console.error('webNavigation API is not available.');
+}
+
+if (chrome.webNavigation && chrome.webNavigation.onCompleted) {
+  chrome.webNavigation.onCompleted.addListener((details) => {
+    onPageLoaded(details.tabId, details.url);
   });
 } else {
   console.error('webNavigation API is not available.');
@@ -123,18 +200,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message, isRotating);
   if (message.action === 'rotateTabs') {
     if (!isRotating) {
-      console.log('Starting rotation from message listener');
-      isRotating = true;
-      chrome.runtime.sendMessage({ action: 'rotationState', isRotating }); // Send rotation state
-      if (tabIds.length === 0) {
-        createTabs(() => {
-          rotateTabs();
-          startReloadTimers();
-        });
-      } else {
-        rotateTabs();
-        startReloadTimers();
-      }
+      initialize();
     }
   } else if (message.action === 'stopRotation') {
     stopRotation();
@@ -143,33 +209,73 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-chrome.action.onClicked.addListener(() => {
+/*chrome.action.onClicked.addListener(() => {
   if (!isRotating) {
     console.log('Starting rotation from action button');
     isRotating = true;
     chrome.runtime.sendMessage({ action: 'rotationState', isRotating }); // Send rotation state
     if (tabIds.length === 0) {
       createTabs(() => {
-        rotateTabs();
-        startReloadTimers();
+        startRotation();
       });
     } else {
-      rotateTabs();
-      startReloadTimers();
+      startRotation();
     }
   }
-});
+});*/
 
-if (chrome.storage && chrome.storage.local) {
-  chrome.storage.local.get('pages', (result) => {
-    pages = result['pages'] || [];
-  });
+function loadRemoteConfig(url: string, callback: () => void) {
+  // Implement the logic to load remote config from the URL
+  // Once loaded, call the callback function
+  callback();
+}
 
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes['pages']) {
-      pages = changes['pages'].newValue;
+function initialize() {
+  if (configUpdateInterval) {
+    // Remove existing interval for remote config upload
+    clearInterval(configUpdateInterval);
+  }
+
+  // Clear existing tabs and timers
+  if (isRotating) {
+    stopRotation();
+  }
+
+  isRotating = true;
+  chrome.runtime.sendMessage({ action: 'rotationState', isRotating }); // Send rotation state
+
+  loadActualConfigurationFromLocalStorage(
+    (loadedConfig, loadedRemoteSettings) => {
+      if (
+        loadedRemoteSettings?.configReloadIntervalMinutes &&
+        loadedRemoteSettings?.configReloadIntervalMinutes > 0
+      ) {
+        // Run the rotation process with the loaded configuration
+        // and then set an interval to reload the configuration
+        createTabs(loadedConfig, (createdTabsConfig) => {
+          initializeRotationProcess(createdTabsConfig);
+        });
+        configUpdateInterval = setInterval(() => {
+          loadActualConfigurationFromLocalStorage((reloadedConfig) => {
+            // TODO: Check if the configuration has changed
+            if (reloadedConfig) {
+              stopRotation();
+              createTabs(reloadedConfig, (createdTabsConfig) => {
+                initializeRotationProcess(createdTabsConfig);
+              });
+            }
+          });
+        }, loadedRemoteSettings.configReloadIntervalMinutes * 60 * 1000);
+      } else {
+        createTabs(loadedConfig, (createdTabsConfig) => {
+          initializeRotationProcess(createdTabsConfig);
+        });
+      }
     }
-  });
-} else {
-  console.error('Chrome Storage API is not available.');
+  );
+}
+
+function initializeRotationProcess(createdTabsConfig: TabsConfig) {
+  tabsConfig = createdTabsConfig;
+  rotateTabs();
 }

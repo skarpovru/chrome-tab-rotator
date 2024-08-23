@@ -5,9 +5,9 @@ import {
   Component,
   OnInit,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ConfigEditorComponent } from './config-editor/config-editor.component';
-import { ConfigData } from './models';
+import { ConfigLoaderComponent } from './config-loader/config-loader.component';
+import { ConfigData, RemoteSettings, StorageKeys } from './models';
 
 @Component({
   selector: 'app-root',
@@ -15,33 +15,20 @@ import { ConfigData } from './models';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, ConfigEditorComponent],
+  imports: [CommonModule, ConfigEditorComponent, ConfigLoaderComponent],
 })
 export class AppComponent implements OnInit {
-  configData: ConfigData = new ConfigData();
   isRotating = false;
+  localConfig?: ConfigData;
+  remoteSettings?: RemoteSettings;
+  useRemoteConfig: boolean = false;
 
-  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.displayCurrentConfig();
+    this.loadStoredAppConfig();
     this.listenForRotationState();
     this.queryRotationState();
-  }
-
-  displayCurrentConfig() {
-    chrome.storage.local.get('pages', (result) => {
-      this.configData = new ConfigData({ pages: result['pages'] || []});
-      console.log('Configuration loaded', this.configData);
-      this.cdr.detectChanges();
-    });
-  }
-
-  saveConfig(configData: ConfigData) {
-    chrome.storage.local.set({ pages: configData.pages }, () => {
-      console.log('Configuration saved', configData);
-      this.displayCurrentConfig();
-    });
   }
 
   startRotation() {
@@ -52,6 +39,81 @@ export class AppComponent implements OnInit {
   stopRotation() {
     chrome.runtime.sendMessage({ action: 'stopRotation' });
     this.isRotating = false;
+  }
+
+  onChangeUseRemoteConfig(useRemoteConfig: boolean) {
+    chrome.storage.local.set({
+      [StorageKeys.UseRemoteConfig]: useRemoteConfig,
+    });
+    this.loadStoredConfigData(useRemoteConfig);
+    this.useRemoteConfig = useRemoteConfig ?? false;
+    this.cdr.detectChanges();
+  }
+
+  private loadStoredConfigData(useRemoteConfig: boolean) {
+    if (useRemoteConfig) {
+      this.localConfig = undefined;
+      this.loadStoredRemoteSettings();
+    } else {
+      this.remoteSettings = undefined;
+      this.loadStoredLocalConfig();
+    }
+  }
+
+  onChangeLocalConfig(localConfig: ConfigData) {
+    chrome.storage.local.set({ [StorageKeys.LocalConfig]: localConfig }, () => {
+      console.log('Local configuration saved', localConfig);
+    });
+  }
+
+  onChangeRemoteSettings(remoteSettings: RemoteSettings) {
+    chrome.storage.local.set(
+      { [StorageKeys.RemoteSettings]: remoteSettings },
+      () => {
+        this.remoteSettings = remoteSettings;
+        console.log('Settings for loading remote configuration was saved');
+      }
+    );
+  }
+
+  onChangeRemoteConfig(remoteConfig: ConfigData) {
+    chrome.storage.local.set(
+      { [StorageKeys.RemoteConfig]: remoteConfig },
+      () => {
+        console.log('Remote configuration saved', remoteConfig);
+      }
+    );
+  }
+
+  private loadStoredAppConfig() {
+    chrome.storage.local.get([StorageKeys.UseRemoteConfig], (result) => {
+      this.useRemoteConfig = result?.[StorageKeys.UseRemoteConfig] ?? false; // Default to false if not set
+      this.loadStoredConfigData(this.useRemoteConfig);
+      console.log('Use remote config flag loaded', this.useRemoteConfig);
+      this.cdr.detectChanges();
+    });
+  }
+
+  private loadStoredRemoteSettings() {
+    chrome.storage.local.get([StorageKeys.RemoteSettings], (result) => {
+      this.remoteSettings =
+        (result?.[StorageKeys.RemoteSettings] as RemoteSettings) ||
+        new RemoteSettings();
+      console.log(
+        'Settings for loading remote configuration loaded',
+        this.remoteSettings
+      );
+      this.cdr.detectChanges();
+    });
+  }
+
+  private loadStoredLocalConfig() {
+    chrome.storage.local.get([StorageKeys.LocalConfig], (result) => {
+      this.localConfig =
+        (result?.[StorageKeys.LocalConfig] as ConfigData) || new ConfigData();
+      console.log('Local configuration loaded', this.localConfig);
+      this.cdr.detectChanges();
+    });
   }
 
   private queryRotationState() {

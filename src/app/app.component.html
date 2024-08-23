@@ -7,6 +7,20 @@
     </h1>
     <div class="flex justify-end flex-wrap gap-2">
       <button
+        *ngIf="useRemoteConfig"
+        class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-primary text-white hover:bg-primary-600"
+        (click)="onChangeUseRemoteConfig(false)"
+      >
+        Switch to Local Config
+      </button>
+      <button
+        *ngIf="!useRemoteConfig"
+        class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-primary text-white hover:bg-primary-600"
+        (click)="onChangeUseRemoteConfig(true)"
+      >
+        Switch to Remote Config
+      </button>
+      <button
         *ngIf="!isRotating"
         class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-primary text-white hover:bg-primary-600"
         (click)="startRotation()"
@@ -24,12 +38,16 @@
   </div>
 
   <div id="currentConfig" class="flex flex-col w-full gap-2">
-    <h2 class="text-primary text-lg font-medium leading-tight">
-      Current Configuration
-    </h2>
     <app-config-editor
-      [value]="configData"
-      (valueChanges)="saveConfig($event)"
+      *ngIf="!useRemoteConfig && localConfig"
+      [value]="localConfig"
+      (valueChanges)="onChangeLocalConfig($event)"
     ></app-config-editor>
+    <app-config-loader
+      *ngIf="useRemoteConfig && remoteSettings"
+      [initialSettings]="remoteSettings"
+      (settingsChanges)="onChangeRemoteSettings($event)"
+      (valueChanges)="onChangeRemoteConfig($event)"
+    ></app-config-loader>
   </div>
 </div>

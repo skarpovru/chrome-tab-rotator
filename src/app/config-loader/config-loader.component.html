@@ -1,0 +1,104 @@
+<div class="flex flex-col gap-2">
+  <h2 class="text-primary text-lg font-medium leading-tight">
+    Remote Configuration
+  </h2>
+  <form
+    [formGroup]="form"
+    (ngSubmit)="onLoadConfig($event)"
+    class="flex flex-col w-full gap-2"
+  >
+    <table class="table-auto w-full">
+      <thead>
+        <tr>
+          <th class="min-w-100">Configuration URL</th>
+          <th class="w-24 max-w-24 text-sm">Reload Interval (minutes)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="min-w-100">
+            <input
+              type="text"
+              [formControl]="configUrlControl"
+              required
+              id="configUrlInput"
+              title="URL"
+              placeholder="Enter config URL"
+              class="w-full text-md bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
+            />
+            <div
+              *ngIf="configUrlControl.invalid && configUrlControl.touched"
+              class="text-red-500 text-sm"
+            >
+              URL is required.
+            </div>
+            <div *ngIf="error" class="text-red-500 text-sm">
+              {{ error }}
+            </div>
+          </td>
+          <td class="w-24 max-w-24">
+            <input
+              type="number"
+              [formControl]="configReloadIntervalControl"
+              required
+              class="w-full text-md bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
+            />
+            <div
+              *ngIf="
+                configReloadIntervalControl.invalid &&
+                configReloadIntervalControl.touched
+              "
+              class="text-red-500 text-sm"
+            >
+              <div *ngIf="configReloadIntervalControl.errors?.['required']">
+                Required.
+              </div>
+              <div *ngIf="configReloadIntervalControl.errors?.['min']">
+                Must be ≥0.
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="flex justify-end flex-wrap gap-2">
+      <button
+        class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-primary text-white hover:bg-primary-600"
+        type="submit"
+        *ngIf="form.get('configUrl')?.value.length > 0"
+      >
+        Load Config
+      </button>
+    </div>
+  </form>
+
+  <h2 class="text-primary text-lg font-medium leading-tight">
+    Latest Loaded Configuration
+  </h2>
+  <table class="table-auto w-full" *ngIf="configData">
+    <thead>
+      <tr>
+        <th class="min-w-100">URL</th>
+        <th class="w-20 max-w-20 text-sm">Display Time (seconds)</th>
+        <th class="w-20 max-w-20 text-sm">Reload Interval (seconds)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let page of configData?.pages; let i = index">
+        <td class="min-w-100 text-md">
+          {{ page.url }}
+        </td>
+        <td class="w-20 max-w-20 text-md">
+          {{ page.delay }}
+        </td>
+        <td class="w-20 max-w-20 text-md">
+          {{ page.reloadInterval }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div *ngIf="!configData" class="flex text-md">
+    The configuration is not loaded yet.
+  </div>
+</div>
