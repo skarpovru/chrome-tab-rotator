@@ -140,6 +140,7 @@ export class AppComponent implements OnInit {
         this.isRotating = message.isRotating;
         this.cdr.detectChanges();
       }
+      return true; // Indicate that we will send a response asynchronously
     });
   }
 }

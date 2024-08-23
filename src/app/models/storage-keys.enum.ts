@@ -7,4 +7,5 @@ export enum StorageKeys {
   LocalConfig = 'localConfig',
   RemoteSettings = 'remoteSettings',
   RemoteConfig = 'remoteConfig',
+  RotationState = 'rotationState',
 }
