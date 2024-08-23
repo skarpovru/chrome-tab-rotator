@@ -9,12 +9,24 @@
     "type": "module"
   },
   "action": {
-      "default_popup": "index.html"
+    "default_popup": "index.html"
   },
   "icons": {
-    "16": "assets/icons/change-exchange-icon-16.png",
-    "48": "assets/icons/change-exchange-icon-48.png",
-    "96": "assets/icons/change-exchange-icon-96.png",
-    "128": "assets/icons/change-exchange-icon-128.png"
-  }
+    "16": "assets/icons/change-exchange-icon16.png",
+    "48": "assets/icons/change-exchange-icon48.png",
+    "128": "assets/icons/change-exchange-icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/icons/change-exchange-icon16.png",
+        "assets/icons/change-exchange-icon48.png",
+        "assets/icons/change-exchange-icon128.png",
+        "assets/icons/change-exchange-red-icon16.png",
+        "assets/icons/change-exchange-red-icon48.png",
+        "assets/icons/change-exchange-red-icon128.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

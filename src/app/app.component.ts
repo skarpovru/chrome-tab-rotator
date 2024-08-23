@@ -130,7 +130,25 @@ export class AppComponent implements OnInit {
   private queryRotationState() {
     chrome.runtime.sendMessage({ action: 'getRotationState' }, (response) => {
       this.isRotating = response.isRotating;
+      this.setToolbarIcon(this.isRotating);
       this.cdr.detectChanges();
+    });
+  }
+
+  /**
+   * Change the extension icon based on the rotation state
+   */
+  private setToolbarIcon(isRotating: boolean) {
+    const iconPath = this.isRotating
+      ? 'assets/icons/change-exchange-red-icon'
+      : 'assets/icons/change-exchange-icon';
+
+    chrome.action.setIcon({
+      path: {
+        '16': iconPath + '16.png',
+        '48': iconPath + '48.png',
+        '128': iconPath + '128.png',
+      },
     });
   }
 
@@ -138,6 +156,7 @@ export class AppComponent implements OnInit {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === 'rotationState') {
         this.isRotating = message.isRotating;
+        this.setToolbarIcon(this.isRotating);
         this.cdr.detectChanges();
       }
       return true; // Indicate that we will send a response asynchronously

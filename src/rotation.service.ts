@@ -102,10 +102,9 @@ export class RotationService {
   }
 
   onPageLoaded(tabId: number, url: string) {
-    console.info('Page loaded in tabId', tabId);
-
     const tabConfig = this.tabsConfig?.tabs?.find((tab) => tab.tabId === tabId);
     if (tabConfig && tabConfig.page.url === url) {
+      console.info('Page loaded in tabId', tabId);
       tabConfig.skip = false;
       this.removeReloadTimer(tabConfig);
       if (
@@ -120,10 +119,10 @@ export class RotationService {
   }
 
   onHandleError(tabId: number, errorUrl: string) {
-    console.info('Page failed to load in tabId, errorUrl', tabId, errorUrl);
-
     const tabConfig = this.tabsConfig?.tabs?.find((tab) => tab.tabId === tabId);
     if (tabConfig && tabConfig.page.url === errorUrl) {
+      console.info('Page failed to load in tabId, errorUrl', tabId, errorUrl);
+
       if (tabConfig.retryCount < this.maxRetries) {
         tabConfig.retryCount++;
         chrome.tabs.update(tabId, { url: tabConfig.page.url });
