@@ -8,6 +8,7 @@ import {
 import { ConfigEditorComponent } from './config-editor/config-editor.component';
 import { ConfigLoaderComponent } from './config-loader/config-loader.component';
 import { ConfigData, RemoteSettings, StorageKeys } from './models';
+import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-root',
@@ -50,18 +51,18 @@ export class AppComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  private loadStoredConfigData(useRemoteConfig: boolean) {
-    if (useRemoteConfig) {
-      this.localConfig = undefined;
-      this.loadStoredRemoteSettings();
-    } else {
-      this.remoteSettings = undefined;
-      this.loadStoredLocalConfig();
+  onExportLocalConfig() {
+    if (this.localConfig) {
+      const blob = new Blob([JSON.stringify(this.localConfig, null, 2)], {
+        type: 'application/json',
+      });
+      saveAs(blob, 'tabs-rotator-config.json');
     }
   }
 
   onChangeLocalConfig(localConfig: ConfigData) {
     chrome.storage.local.set({ [StorageKeys.LocalConfig]: localConfig }, () => {
+      //this.localConfig = localConfig;
       console.log('Local configuration saved', localConfig);
     });
   }
@@ -70,7 +71,7 @@ export class AppComponent implements OnInit {
     chrome.storage.local.set(
       { [StorageKeys.RemoteSettings]: remoteSettings },
       () => {
-        this.remoteSettings = remoteSettings;
+        //this.remoteSettings = remoteSettings;
         console.log('Settings for loading remote configuration was saved');
       }
     );
@@ -83,6 +84,16 @@ export class AppComponent implements OnInit {
         console.log('Remote configuration saved', remoteConfig);
       }
     );
+  }
+
+  private loadStoredConfigData(useRemoteConfig: boolean) {
+    if (useRemoteConfig) {
+      this.localConfig = undefined;
+      this.loadStoredRemoteSettings();
+    } else {
+      this.remoteSettings = undefined;
+      this.loadStoredLocalConfig();
+    }
   }
 
   private loadStoredAppConfig() {

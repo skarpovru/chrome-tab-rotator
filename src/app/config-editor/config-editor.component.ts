@@ -31,6 +31,7 @@ export class ConfigEditorComponent implements OnInit {
   configData?: ConfigData;
   configForm: FormGroup;
   dataSource: FormGroup[] = [];
+  formChanged = false;
 
   constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
     this.configForm = this.fb.group({
@@ -53,6 +54,11 @@ export class ConfigEditorComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.configForm.valueChanges.subscribe(() => {
+      this.formChanged =
+        JSON.stringify(this.configForm.value) !==
+        JSON.stringify(this.configData);
+    });
   }
 
   loadConfigData(data?: ConfigData) {
@@ -73,9 +79,12 @@ export class ConfigEditorComponent implements OnInit {
     this.pages.push(
       this.fb.group({
         url: [pageConfig.url, Validators.required],
-        delay: [pageConfig.delay, [Validators.required, Validators.min(3)]],
-        reloadInterval: [
-          pageConfig.reloadInterval,
+        delaySeconds: [
+          pageConfig.delaySeconds,
+          [Validators.required, Validators.min(3)],
+        ],
+        reloadIntervalSeconds: [
+          pageConfig.reloadIntervalSeconds,
           [Validators.required, Validators.min(0)],
         ],
       })
@@ -96,6 +105,7 @@ export class ConfigEditorComponent implements OnInit {
       return;
     }
     this.valueChanges.emit(this.configForm.value as ConfigData);
+    this.formChanged = false;
   }
 
   private updateDataSource() {

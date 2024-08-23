@@ -16,7 +16,7 @@
       </thead>
       <tbody>
         <tr>
-          <td class="min-w-100">
+          <td class="min-w-100 align-top">
             <input
               type="text"
               [formControl]="configUrlControl"
@@ -36,7 +36,7 @@
               {{ error }}
             </div>
           </td>
-          <td class="w-24 max-w-24">
+          <td class="w-24 max-w-24 align-top">
             <input
               type="number"
               [formControl]="configReloadIntervalControl"
@@ -90,10 +90,10 @@
           {{ page.url }}
         </td>
         <td class="w-20 max-w-20 text-md">
-          {{ page.delay }}
+          {{ page.delaySeconds }}
         </td>
         <td class="w-20 max-w-20 text-md">
-          {{ page.reloadInterval }}
+          {{ page.reloadIntervalSeconds }}
         </td>
       </tr>
     </tbody>

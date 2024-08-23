@@ -31,11 +31,11 @@ export class ConfigValidatorService {
       errors.push(`pages[${index}].url must be a non-empty string.`);
     }
 
-    if (pageConfig.delay < 3) {
+    if (pageConfig.delaySeconds < 3) {
       errors.push(`pages[${index}].delay must be equal or greater than 3.`);
     }
 
-    if (pageConfig.reloadInterval < 0) {
+    if (pageConfig.reloadIntervalSeconds < 0) {
       errors.push(
         `pages[${index}].reloadInterval must be equal or greater than 0.`
       );

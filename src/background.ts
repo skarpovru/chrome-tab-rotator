@@ -35,7 +35,7 @@ function rotateTabs() {
   const currentTab = tabsConfig.tabs[currentIndex];
   if (currentTab !== undefined && !currentTab.skip) {
     chrome.tabs.update(currentTab.tabId, { active: true });
-    const currentDelay = currentTab.page.delay * 1000;
+    const currentDelay = currentTab.page.delaySeconds * 1000;
     currentIndex = (currentIndex + 1) % tabsConfig.tabs.length;
     console.info('rotationTimeout currentDelay:', currentDelay);
     rotationTimeout = setTimeout(rotateTabs, currentDelay);
@@ -136,9 +136,10 @@ function onHandleError(tabId: number, errorUrl: string) {
       // Set a special reload interval for the failed page.
       // If regular reload interval is shorter than the failed page reload interval, then use it
       const failedPageReloadIntervalSeconds =
-        tabConfig.page.reloadInterval > 0 &&
-        defaultFailedPageReloadIntervalSeconds > tabConfig.page.reloadInterval
-          ? tabConfig.page.reloadInterval
+        tabConfig.page.reloadIntervalSeconds > 0 &&
+        defaultFailedPageReloadIntervalSeconds >
+          tabConfig.page.reloadIntervalSeconds
+          ? tabConfig.page.reloadIntervalSeconds
           : defaultFailedPageReloadIntervalSeconds;
 
       tabConfig.reloadTimer = setInterval(() => {
@@ -168,10 +169,13 @@ function onPageLoaded(tabId: number, url: string) {
     tabConfig.skip = false;
     removeReloadTimer(tabConfig);
     // Set a reload interval for the page.
-    if (tabConfig.page.reloadInterval && tabConfig.page.reloadInterval > 0) {
+    if (
+      tabConfig.page.reloadIntervalSeconds &&
+      tabConfig.page.reloadIntervalSeconds > 0
+    ) {
       tabConfig.reloadTimer = setInterval(() => {
         chrome.tabs.reload(tabConfig.tabId);
-      }, tabConfig.page.reloadInterval * 1000);
+      }, tabConfig.page.reloadIntervalSeconds * 1000);
     }
 
     console.info('Tab removed from rotation due to repeated errors:', tabId);
