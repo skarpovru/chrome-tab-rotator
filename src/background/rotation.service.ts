@@ -5,9 +5,9 @@ import {
   StorageKeys,
   TabConfig,
   TabsConfig,
-} from './app/models';
-import { ConfigValidatorService } from './app/common/config-validator.service';
-import { CustomHttpClient } from './app/common/custom-http-client.service';
+} from '../app/models';
+import { ConfigValidatorService, ToolbarManagerService } from '../app/services';
+import { CustomHttpClient } from './custom-http-client.service';
 
 export class RotationService {
   private rotationState = new RotationState();
@@ -21,7 +21,8 @@ export class RotationService {
 
   constructor(
     private http: CustomHttpClient,
-    private configValidator: ConfigValidatorService
+    private configValidator: ConfigValidatorService,
+    private toolbarManagerService: ToolbarManagerService
   ) {
     chrome.storage.local.get(StorageKeys.RotationState, (result) => {
       const rotationState =
@@ -157,32 +158,30 @@ export class RotationService {
 
   onHandleError(tabId: number, errorUrl: string) {
     const tabConfig = this.tabsConfig?.tabs?.find((tab) => tab.tabId === tabId);
-    if (tabConfig && tabConfig.page.url === errorUrl) {
-      console.info('Page failed to load in tabId, errorUrl', tabId, errorUrl);
+    if (!tabConfig || tabConfig.page.url !== errorUrl) {
+      return;
+    }
+    console.info('Page failed to load in tabId, errorUrl', tabId, errorUrl);
 
-      if (tabConfig.retryCount < this.maxRetries) {
-        tabConfig.retryCount++;
-        chrome.tabs.update(tabId, { url: tabConfig.page.url });
-      } else {
-        tabConfig.skip = true;
-        this.removeReloadTimer(tabConfig);
+    if (tabConfig.retryCount < this.maxRetries) {
+      tabConfig.retryCount++;
+      chrome.tabs.update(tabId, { url: tabConfig.page.url });
+    } else {
+      tabConfig.skip = true;
+      this.removeReloadTimer(tabConfig);
 
-        const failedPageReloadIntervalSeconds =
-          tabConfig.page.reloadIntervalSeconds > 0 &&
-          this.defaultFailedPageReloadIntervalSeconds >
-            tabConfig.page.reloadIntervalSeconds
-            ? tabConfig.page.reloadIntervalSeconds
-            : this.defaultFailedPageReloadIntervalSeconds;
+      const failedPageReloadIntervalSeconds =
+        tabConfig.page.reloadIntervalSeconds > 0 &&
+        this.defaultFailedPageReloadIntervalSeconds >
+          tabConfig.page.reloadIntervalSeconds
+          ? tabConfig.page.reloadIntervalSeconds
+          : this.defaultFailedPageReloadIntervalSeconds;
 
-        tabConfig.reloadTimer = setInterval(() => {
-          chrome.tabs.reload(tabConfig.tabId);
-        }, failedPageReloadIntervalSeconds * 1000);
+      tabConfig.reloadTimer = setInterval(() => {
+        chrome.tabs.reload(tabConfig.tabId);
+      }, failedPageReloadIntervalSeconds * 1000);
 
-        console.info(
-          'Tab removed from rotation due to repeated errors:',
-          tabId
-        );
-      }
+      console.info('Tab removed from rotation due to repeated errors:', tabId);
     }
   }
 
@@ -202,6 +201,8 @@ export class RotationService {
     chrome.storage.local.set(
       { [StorageKeys.RotationState]: this.rotationState },
       () => {
+        console.log('setRotationState', rotating);
+        this.toolbarManagerService.setToolbarIcon(rotating);
         chrome.runtime.sendMessage({
           action: 'rotationState',
           isRotating: rotating,
@@ -287,6 +288,11 @@ export class RotationService {
     }
     configData.pages.forEach((page, index) => {
       chrome.tabs.create({ url: page.url, active: index === 0 }, (tab) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error creating tab:', chrome.runtime.lastError);
+          callback(newTabsConfig);
+          return;
+        }
         console.log('Tab created:', tab);
         const tabConfig = new TabConfig({
           page,
@@ -304,7 +310,14 @@ export class RotationService {
   private removeTabs(tabIds: number[]) {
     tabIds.forEach((tabId) => {
       try {
-        chrome.tabs.remove(tabId);
+        chrome.tabs.remove(tabId, () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              'Error while removing tab:',
+              chrome.runtime.lastError
+            );
+          }
+        });
       } catch (error) {
         console.error('Error while removing tab:', error);
       }

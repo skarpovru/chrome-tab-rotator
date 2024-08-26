@@ -8,7 +8,7 @@
   },
   "files": [
     "src/main.ts",
-    "src/background.ts"
+    "src/background/background.ts"
   ],
   "include": [
     "src/**/*.d.ts"

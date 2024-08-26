@@ -7,6 +7,13 @@
     </h1>
     <div class="flex justify-end flex-wrap gap-2">
       <button
+        *ngIf="!useRemoteConfig"
+        class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-secondary text-primary hover:bg-secondary-600"
+        (click)="onImportLocalConfig()"
+      >
+        Import
+      </button>
+      <button
         *ngIf="!useRemoteConfig && localConfig"
         class="px-4 py-2 rounded shadow-md transition duration-300 ease-in-out bg-secondary text-primary hover:bg-secondary-600"
         (click)="onExportLocalConfig()"

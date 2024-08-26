@@ -12,7 +12,7 @@
       <input
         type="checkbox"
         id="isFullscreen"
-        formControlName="isFullscreen"
+        [formControl]="isFullscreenControl"
         class="form-checkbox h-5 w-5 text-primary"
       />
     </div>
@@ -26,11 +26,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let page of dataSource; let i = index">
+        <tr
+          [formGroup]="pageGroup"
+          *ngFor="let pageGroup of pagesFormArray.controls; let i = index"
+        >
           <td class="min-w-100 align-top">
             <input
               type="text"
-              [formControl]="getFormControl(page, 'url')"
+              formControlName="url"
               required
               id="urlInput{{ i }}"
               title="URL"
@@ -39,8 +42,8 @@
             />
             <div
               *ngIf="
-                getFormControl(page, 'url').invalid &&
-                getFormControl(page, 'url').touched
+                pageGroup.controls['url'].invalid &&
+                pageGroup.controls['url'].touched
               "
               class="text-red-500 text-sm"
             >
@@ -50,23 +53,23 @@
           <td class="w-20 max-w-20 align-top">
             <input
               type="number"
-              [formControl]="getFormControl(page, 'delaySeconds')"
+              formControlName="delaySeconds"
               required
               class="w-full text-md bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
             />
             <div
               *ngIf="
-                getFormControl(page, 'delaySeconds').invalid &&
-                getFormControl(page, 'delaySeconds').touched
+                pageGroup.controls['delaySeconds'].invalid &&
+                pageGroup.controls['delaySeconds'].touched
               "
               class="text-red-500 text-sm"
             >
               <div
-                *ngIf="getFormControl(page, 'delaySeconds').errors?.['required']"
+                *ngIf="pageGroup.controls['delaySeconds'].errors?.['required']"
               >
                 Required.
               </div>
-              <div *ngIf="getFormControl(page, 'delaySeconds').errors?.['min']">
+              <div *ngIf="pageGroup.controls['delaySeconds'].errors?.['min']">
                 Must be ≥3.
               </div>
             </div>
@@ -74,24 +77,24 @@
           <td class="w-20 max-w-20 align-top">
             <input
               type="number"
-              [formControl]="getFormControl(page, 'reloadIntervalSeconds')"
+              formControlName="reloadIntervalSeconds"
               required
               class="w-full text-md bg-ghost block rounded-md border-transparent focus:border-secondary focus:bg-white focus:ring-0"
             />
             <div
               *ngIf="
-                getFormControl(page, 'reloadIntervalSeconds').invalid &&
-                getFormControl(page, 'reloadIntervalSeconds').touched
+                pageGroup.controls['reloadIntervalSeconds'].invalid &&
+                pageGroup.controls['reloadIntervalSeconds'].touched
               "
               class="text-red-500 text-sm"
             >
               <div
-                *ngIf="getFormControl(page, 'reloadIntervalSeconds').errors?.['required']"
+                *ngIf="pageGroup.controls['reloadIntervalSeconds'].errors?.['required']"
               >
                 Required.
               </div>
               <div
-                *ngIf="getFormControl(page, 'reloadIntervalSeconds').errors?.['min']"
+                *ngIf="pageGroup.controls['reloadIntervalSeconds'].errors?.['min']"
               >
                 Must be ≥0.
               </div>

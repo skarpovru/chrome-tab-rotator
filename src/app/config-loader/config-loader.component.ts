@@ -7,7 +7,7 @@ import {
   Output,
   OnInit,
 } from '@angular/core';
-import { ConfigLoaderService } from './config-loader.service';
+import { ConfigLoaderService } from '../services/config-loader.service';
 import { ConfigData, RemoteSettings } from '../models';
 import { CommonModule } from '@angular/common';
 import {
@@ -85,7 +85,7 @@ export class ConfigLoaderComponent implements OnInit {
       return;
     }
 
-    this.configLoaderService.loadConfig(configUrl).subscribe({
+    this.configLoaderService.loadFromUrl(configUrl).subscribe({
       next: (configData) => {
         console.log('Remote configuration loaded and saved', configData);
         this.configData = configData;

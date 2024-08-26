@@ -17,6 +17,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { ConfigData, PageConfig } from '../models';
+import isEqual from 'lodash/isEqual';
 
 @Component({
   selector: 'app-config-editor',
@@ -28,77 +29,82 @@ import { ConfigData, PageConfig } from '../models';
 export class ConfigEditorComponent implements OnInit {
   @Output() valueChanges = new EventEmitter<ConfigData>();
 
-  configData?: ConfigData;
+  initialConfigData?: ConfigData;
+  latestConfigData?: ConfigData;
   configForm: FormGroup;
-  dataSource: FormGroup[] = [];
+  pagesFormArray = new FormArray<FormGroup>([]);
+  isFullscreenControl = new FormControl(false);
+
   formChanged = false;
 
   constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
     this.configForm = this.fb.group({
-      isFullscreen: [false],
-      pages: this.fb.array([]),
+      isFullscreen: this.isFullscreenControl,
+      pages: this.pagesFormArray,
     });
-
-    this.dataSource = (this.configForm.get('pages') as FormArray)
-      .controls as FormGroup[];
   }
 
   @Input() set value(configData: ConfigData) {
-    this.configData = configData;
-    this.loadConfigData(this.configData);
-    this.updateDataSource();
+    this.initialConfigData = configData;
+    this.latestConfigData = configData;
+    this.loadConfigData(this.initialConfigData);
     this.cdr.detectChanges();
-  }
-
-  get pages(): FormArray {
-    return this.configForm.get('pages') as FormArray;
   }
 
   ngOnInit() {
     this.configForm.valueChanges.subscribe(() => {
-      this.formChanged =
-        JSON.stringify(this.configForm.value) !==
-        JSON.stringify(this.configData);
+      const formChanged = !isEqual(
+        this.configForm.value,
+        this.latestConfigData
+      );
+      const updateRequired = this.formChanged !== formChanged;
+      this.formChanged = !isEqual(this.configForm.value, this.latestConfigData);
+
+      if (updateRequired) {
+        this.cdr.detectChanges();
+      }
     });
   }
 
   loadConfigData(data?: ConfigData) {
     const pages = data?.pages || [];
-    this.configForm.patchValue({
-      isFullscreen: data?.isFullscreen ?? false,
-    });
+
+    this.isFullscreenControl.setValue(data?.isFullscreen ?? false);
+    this.pagesFormArray = new FormArray<FormGroup>([]);
     if (pages.length === 0) {
       // Start by default with one empty page
       this.addPage();
     } else {
-      this.pages.clear();
       pages.forEach((page: PageConfig) => {
         this.addPage(page);
       });
     }
+
+    // Update the configForm to include the new pagesFormArray
+    this.configForm.setControl('pages', this.pagesFormArray);
   }
 
   addPage(page?: PageConfig) {
     const pageConfig = page ?? new PageConfig();
-    this.pages.push(
-      this.fb.group({
-        url: [pageConfig.url, Validators.required],
-        delaySeconds: [
-          pageConfig.delaySeconds,
-          [Validators.required, Validators.min(3)],
-        ],
-        reloadIntervalSeconds: [
-          pageConfig.reloadIntervalSeconds,
-          [Validators.required, Validators.min(0)],
-        ],
-      })
-    );
-    this.updateDataSource();
+    const pageFormGroup = this.fb.group({
+      delaySeconds: [
+        pageConfig.delaySeconds,
+        [Validators.required, Validators.min(3)],
+      ],
+      reloadIntervalSeconds: [
+        pageConfig.reloadIntervalSeconds,
+        [Validators.required, Validators.min(0)],
+      ],
+      url: [pageConfig.url, Validators.required],
+    });
+
+    this.pagesFormArray.push(pageFormGroup);
+    this.cdr.detectChanges();
   }
 
   deletePage(index: number) {
-    this.pages.removeAt(index);
-    this.updateDataSource();
+    this.pagesFormArray.removeAt(index);
+    this.cdr.detectChanges();
   }
 
   onSaveConfig(event: Event) {
@@ -108,13 +114,10 @@ export class ConfigEditorComponent implements OnInit {
       alert('Please fill in all fields.');
       return;
     }
-    this.valueChanges.emit(this.configForm.value as ConfigData);
-    this.formChanged = false;
-  }
 
-  private updateDataSource() {
-    this.dataSource = this.pages.controls as FormGroup[];
-    this.cdr.detectChanges();
+    this.latestConfigData = this.configForm.value as ConfigData;
+    this.valueChanges.emit(this.latestConfigData);
+    this.formChanged = false;
   }
 
   getFormControl(page: FormGroup, controlName: string): FormControl {

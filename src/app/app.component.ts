@@ -8,7 +8,7 @@ import {
 import { ConfigEditorComponent } from './config-editor/config-editor.component';
 import { ConfigLoaderComponent } from './config-loader/config-loader.component';
 import { ConfigData, RemoteSettings, StorageKeys } from './models';
-import { saveAs } from 'file-saver';
+import { ConfigLoaderService } from './services/config-loader.service';
 
 @Component({
   selector: 'app-root',
@@ -24,7 +24,10 @@ export class AppComponent implements OnInit {
   remoteSettings?: RemoteSettings;
   useRemoteConfig: boolean = false;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private configLoaderService: ConfigLoaderService
+  ) {}
 
   ngOnInit() {
     this.loadStoredAppConfig();
@@ -53,11 +56,32 @@ export class AppComponent implements OnInit {
 
   onExportLocalConfig() {
     if (this.localConfig) {
-      const blob = new Blob([JSON.stringify(this.localConfig, null, 2)], {
-        type: 'application/json',
-      });
-      saveAs(blob, 'tabs-rotator-config.json');
+      this.configLoaderService.saveToFile(
+        this.localConfig,
+        'tabs-rotator-config.json'
+      );
     }
+  }
+
+  onImportLocalConfig() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (event: any) => {
+      const file = event.target.files[0];
+      if (file) {
+        this.configLoaderService.loadFromFile(file, false).subscribe({
+          next: (config) => {
+            this.localConfig = config;
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Error importing the configuration file', error);
+          },
+        });
+      }
+    };
+    input.click();
   }
 
   onChangeLocalConfig(localConfig: ConfigData) {
@@ -130,25 +154,7 @@ export class AppComponent implements OnInit {
   private queryRotationState() {
     chrome.runtime.sendMessage({ action: 'getRotationState' }, (response) => {
       this.isRotating = response.isRotating;
-      this.setToolbarIcon(this.isRotating);
       this.cdr.detectChanges();
-    });
-  }
-
-  /**
-   * Change the extension icon based on the rotation state
-   */
-  private setToolbarIcon(isRotating: boolean) {
-    const iconPath = this.isRotating
-      ? 'assets/icons/change-exchange-red-icon'
-      : 'assets/icons/change-exchange-icon';
-
-    chrome.action.setIcon({
-      path: {
-        '16': iconPath + '16.png',
-        '48': iconPath + '48.png',
-        '128': iconPath + '128.png',
-      },
     });
   }
 
@@ -156,7 +162,6 @@ export class AppComponent implements OnInit {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === 'rotationState') {
         this.isRotating = message.isRotating;
-        this.setToolbarIcon(this.isRotating);
         this.cdr.detectChanges();
       }
       return true; // Indicate that we will send a response asynchronously
