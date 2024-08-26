@@ -6,6 +6,8 @@ import {
   TabConfig,
   TabsConfig,
 } from './app/models';
+import { ConfigValidatorService } from './app/common/config-validator.service';
+import { CustomHttpClient } from './app/common/custom-http-client.service';
 
 export class RotationService {
   private rotationState = new RotationState();
@@ -15,8 +17,12 @@ export class RotationService {
   private rotationTimeout?: ReturnType<typeof setTimeout>;
   private tabsConfig?: TabsConfig;
   private configUpdateInterval?: ReturnType<typeof setInterval>;
+  private currentConfig?: ConfigData; // Add this property to store the current running configuration
 
-  constructor() {
+  constructor(
+    private http: CustomHttpClient,
+    private configValidator: ConfigValidatorService
+  ) {
     chrome.storage.local.get(StorageKeys.RotationState, (result) => {
       const rotationState =
         (result?.[StorageKeys.RotationState] as RotationState) ||
@@ -50,31 +56,59 @@ export class RotationService {
 
     this.loadActualConfigurationFromLocalStorage(
       (loadedConfig, loadedRemoteSettings) => {
+        const startRotation = (config: ConfigData) => {
+          this.currentConfig = config; // Update the current running configuration
+          this.createTabs(config, (createdTabsConfig) => {
+            this.initializeRotationProcess(createdTabsConfig, config);
+          });
+        };
+
         if (
-          loadedRemoteSettings?.configReloadIntervalMinutes &&
-          loadedRemoteSettings?.configReloadIntervalMinutes > 0
+          !loadedRemoteSettings ||
+          !loadedRemoteSettings?.configUrl ||
+          !(loadedRemoteSettings?.configReloadIntervalMinutes > 0)
         ) {
-          this.createTabs(loadedConfig, (createdTabsConfig) => {
-            this.initializeRotationProcess(createdTabsConfig, loadedConfig);
-          });
-          this.configUpdateInterval = setInterval(() => {
-            this.loadActualConfigurationFromLocalStorage((reloadedConfig) => {
-              if (reloadedConfig) {
-                this.stopRotation();
-                this.createTabs(reloadedConfig, (createdTabsConfig) => {
-                  this.initializeRotationProcess(
-                    createdTabsConfig,
-                    loadedConfig
-                  );
-                });
-              }
-            });
-          }, loadedRemoteSettings.configReloadIntervalMinutes * 60 * 1000);
-        } else {
-          this.createTabs(loadedConfig, (createdTabsConfig) => {
-            this.initializeRotationProcess(createdTabsConfig, loadedConfig);
-          });
+          startRotation(loadedConfig);
+          return;
         }
+
+        const loadAndStartRotation = () => {
+          this.loadRemoteConfig(
+            loadedRemoteSettings?.configUrl || '',
+            (remoteConfig) => {
+              if (remoteConfig) {
+                // Compare the current config with the loaded remote config
+                if (
+                  JSON.stringify(this.currentConfig) !==
+                  JSON.stringify(remoteConfig)
+                ) {
+                  // Save the remote config to local storage
+                  chrome.storage.local.set(
+                    { [StorageKeys.RemoteConfig]: remoteConfig },
+                    () => {
+                      console.info('Remote config saved to local storage.');
+                    }
+                  );
+                  // Clear the current rotation
+                  if (this.isRotating) {
+                    this.stopRotation();
+                  }
+                  // Start rotation updated with the remote config
+                  startRotation(remoteConfig);
+                }
+              }
+            }
+          );
+        };
+
+        const reloadIntervalMs =
+          loadedRemoteSettings.configReloadIntervalMinutes * 60 * 1000;
+
+        loadAndStartRotation();
+        this.configUpdateInterval = setInterval(
+          loadAndStartRotation,
+          reloadIntervalMs
+        );
       }
     );
   }
@@ -285,8 +319,23 @@ export class RotationService {
     }
   }
 
-  private loadRemoteConfig(url: string, callback: () => void) {
-    callback();
+  private loadRemoteConfig(
+    url: string,
+    callback: (configData: ConfigData) => void
+  ) {
+    this.http.get<ConfigData>(url).then(
+      (configData) => {
+        try {
+          this.configValidator.validateConfigData(configData);
+          callback(configData);
+        } catch (parseError) {
+          console.error('Failed to parse configuration data.', parseError);
+        }
+      },
+      (error) => {
+        console.error('Failed to load configuration.', error);
+      }
+    );
   }
 
   private initializeRotationProcess(
@@ -294,7 +343,7 @@ export class RotationService {
     configData: ConfigData
   ) {
     this.setRotationState(
-      this.isRotating,
+      true,
       createdTabsConfig.tabs.map((tab) => tab.tabId)
     );
 

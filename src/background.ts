@@ -1,6 +1,10 @@
 import { RotationService } from './rotation.service';
+import { ConfigValidatorService } from './app/common/config-validator.service';
+import { CustomHttpClient } from './app/common/custom-http-client.service';
 
-const rotationService = new RotationService();
+const http = new CustomHttpClient();
+const configValidator = new ConfigValidatorService();
+const rotationService = new RotationService(http, configValidator);
 
 if (chrome.webNavigation && chrome.webNavigation.onErrorOccurred) {
   chrome.webNavigation.onErrorOccurred.addListener((details) => {
