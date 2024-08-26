@@ -1,27 +1,56 @@
-# ChromeTabsRotator
+# Chrome Tabs Rotator / Slideshow
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.0.
+## Overview
 
-## Development server
+Chrome Tabs Rotator automatically loads URLs in new tabs and display them as a slideshow. It is useful for displaying dashboards, monitoring tools, presentations, advertisements, reports, marketing, or any other web pages that need to be cycled through regularly on a screen.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Features
 
-## Code scaffolding
+- Switch between tabs with web pages from the Internet or on your local PC using `file://` links.
+- Set display time and reload interval for each URL.
+- Manage configuration in the extension or load from a URL with automatic updates.
+- Automatically retries loading links if errors occur and skips failed pages until they are available again.
+- It continues to work after the browser restarts and prevents tab spamming.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Screenshots
 
-## Build
+![Local Configuration](screenshots/local_configuration.png)
+![Remote Configuration](screenshots/remote_configuration.png)
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Support
 
-## Running unit tests
+If you find a bug, please create an issue on GitHub [chrome-tabs-rotator](https://github.com/skarpovru/chrome-tabs-rotator).
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+---
 
-## Running end-to-end tests
+## Development
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+To develop the extension locally, follow these steps:
 
-## Further help
+1. Install Dependencies (requires Node.js v18 or higher, npm, and yarn):
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+   ```sh
+   yarn
+   ```
+
+2. Build and Zip the Extension:
+
+   ```sh
+   yarn build
+   ```
+
+   This command will clean out the `dist` directory, build the project, and package the result into a zip file for distribution.
+
+3. Start the Development Server:
+
+   ```sh
+   yarn start
+   ```
+
+   This command will watch for changes and rebuild the project automatically.
+
+4. Load the Extension in Chrome:
+
+   - Open Chrome and navigate to [`chrome://extensions/`](chrome://extensions/).
+   - Enable "Developer mode" using the toggle switch in the top right corner.
+   - Click "Load unpacked" and select the project subfolder in the `dist` directory.
