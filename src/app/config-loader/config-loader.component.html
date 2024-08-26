@@ -76,12 +76,18 @@
   <h2 class="text-primary text-lg font-medium leading-tight">
     Latest Loaded Configuration
   </h2>
+
+  <div class="flex items-center gap-2" *ngIf="configData">
+    <label class="text-md">Fullscreen Mode:</label>
+    <span>{{ configData.isFullscreen ? "Enabled" : "Disabled" }}</span>
+  </div>
+
   <table class="table-auto w-full" *ngIf="configData">
     <thead>
       <tr>
         <th class="min-w-100">URL</th>
         <th class="w-20 max-w-20 text-sm">Display Time (seconds)</th>
-        <th class="w-20 max-w-20 text-sm">Reload Interval (seconds)</th>
+        <th class="w-20 max-w-20 text-sm">Reload After (seconds)</th>
       </tr>
     </thead>
     <tbody>

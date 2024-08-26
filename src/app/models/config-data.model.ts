@@ -6,6 +6,11 @@ export class ConfigData {
    */
   pages: PageConfig[] = [];
 
+  /**
+   * Indicates if the pages should be shown is in fullscreen mode.
+   */
+  isFullscreen: boolean = true;
+
   constructor(init?: Partial<ConfigData>) {
     Object.assign(this, init);
   }

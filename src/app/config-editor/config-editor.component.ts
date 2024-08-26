@@ -35,6 +35,7 @@ export class ConfigEditorComponent implements OnInit {
 
   constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
     this.configForm = this.fb.group({
+      isFullscreen: [false],
       pages: this.fb.array([]),
     });
 
@@ -63,6 +64,9 @@ export class ConfigEditorComponent implements OnInit {
 
   loadConfigData(data?: ConfigData) {
     const pages = data?.pages || [];
+    this.configForm.patchValue({
+      isFullscreen: data?.isFullscreen ?? false,
+    });
     if (pages.length === 0) {
       // Start by default with one empty page
       this.addPage();

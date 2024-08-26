@@ -5,14 +5,23 @@
   <form
     [formGroup]="configForm"
     (ngSubmit)="onSaveConfig($event)"
-    class="flex flex-col w-full gap-2"
+    class="flex flex-col w-full gap-2 pt-2"
   >
+    <div class="flex items-center gap-2">
+      <label for="isFullscreen" class="text-md">Fullscreen Mode</label>
+      <input
+        type="checkbox"
+        id="isFullscreen"
+        formControlName="isFullscreen"
+        class="form-checkbox h-5 w-5 text-primary"
+      />
+    </div>
     <table class="table-auto w-full">
       <thead>
         <tr>
           <th class="min-w-100">URL</th>
           <th class="w-20 max-w-20 text-sm">Display Time (seconds)</th>
-          <th class="w-20 max-w-20 text-sm">Reload Interval (seconds)</th>
+          <th class="w-20 max-w-20 text-sm">Reload After (seconds)</th>
           <th class="w-10 max-w-10 text-sm"></th>
         </tr>
       </thead>

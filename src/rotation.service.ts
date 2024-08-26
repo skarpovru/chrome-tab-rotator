@@ -55,21 +55,24 @@ export class RotationService {
           loadedRemoteSettings?.configReloadIntervalMinutes > 0
         ) {
           this.createTabs(loadedConfig, (createdTabsConfig) => {
-            this.initializeRotationProcess(createdTabsConfig);
+            this.initializeRotationProcess(createdTabsConfig, loadedConfig);
           });
           this.configUpdateInterval = setInterval(() => {
             this.loadActualConfigurationFromLocalStorage((reloadedConfig) => {
               if (reloadedConfig) {
                 this.stopRotation();
                 this.createTabs(reloadedConfig, (createdTabsConfig) => {
-                  this.initializeRotationProcess(createdTabsConfig);
+                  this.initializeRotationProcess(
+                    createdTabsConfig,
+                    loadedConfig
+                  );
                 });
               }
             });
           }, loadedRemoteSettings.configReloadIntervalMinutes * 60 * 1000);
         } else {
           this.createTabs(loadedConfig, (createdTabsConfig) => {
-            this.initializeRotationProcess(createdTabsConfig);
+            this.initializeRotationProcess(createdTabsConfig, loadedConfig);
           });
         }
       }
@@ -266,7 +269,11 @@ export class RotationService {
 
   private removeTabs(tabIds: number[]) {
     tabIds.forEach((tabId) => {
-      chrome.tabs.remove(tabId);
+      try {
+        chrome.tabs.remove(tabId);
+      } catch (error) {
+        console.error('Error while removing tab:', error);
+      }
     });
   }
 
@@ -282,11 +289,20 @@ export class RotationService {
     callback();
   }
 
-  private initializeRotationProcess(createdTabsConfig: TabsConfig) {
+  private initializeRotationProcess(
+    createdTabsConfig: TabsConfig,
+    configData: ConfigData
+  ) {
     this.setRotationState(
       this.isRotating,
       createdTabsConfig.tabs.map((tab) => tab.tabId)
     );
+
+    if (configData.isFullscreen) {
+      chrome.windows.getCurrent({}, (window) => {
+        chrome.windows.update(window.id!, { state: 'fullscreen' });
+      });
+    }
 
     this.tabsConfig = createdTabsConfig;
     this.rotateTabs();

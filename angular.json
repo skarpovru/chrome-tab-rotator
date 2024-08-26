@@ -28,6 +28,9 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": [
+              "file-saver"
+            ],
             "assets": [
               "src/favicon.ico",
               "src/assets",
