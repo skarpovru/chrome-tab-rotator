@@ -29,7 +29,8 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "allowedCommonJsDependencies": [
-              "file-saver"
+              "file-saver",
+              "lodash"
             ],
             "assets": [
               "src/favicon.ico",

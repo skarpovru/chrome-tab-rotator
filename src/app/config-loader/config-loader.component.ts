@@ -87,7 +87,7 @@ export class ConfigLoaderComponent implements OnInit {
 
     this.configLoaderService.loadFromUrl(configUrl).subscribe({
       next: (configData) => {
-        console.log('Remote configuration loaded and saved', configData);
+        console.debug('Remote configuration loaded and saved', configData);
         this.configData = configData;
         this.valueChanges.emit(configData);
         this.cdr.detectChanges();

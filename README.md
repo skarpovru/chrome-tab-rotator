@@ -8,9 +8,11 @@ Chrome Tabs Rotator automatically loads URLs in new tabs and display them as a s
 
 - Switch between tabs with web pages from the Internet or on your local PC using `file://` links.
 - Set display time and reload interval for each URL.
-- Manage configuration in the extension or load from a URL with automatic updates.
+- Manage configuration in the extension or load from a remote URL with automatic updates.
+- Import and export local configuration to a file.
 - Automatically retries loading links if errors occur and skips failed pages until they are available again.
 - It continues to work after the browser restarts and prevents tab spamming.
+- Offline support. Keeps the previous page version if the page update fails.
 
 ## Screenshots
 

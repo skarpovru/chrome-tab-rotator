@@ -23,6 +23,7 @@ export class AppComponent implements OnInit {
   localConfig?: ConfigData;
   remoteSettings?: RemoteSettings;
   useRemoteConfig: boolean = false;
+  isRotationDisabled: boolean = false;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -31,18 +32,31 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.loadStoredAppConfig();
-    this.listenForRotationState();
     this.queryRotationState();
   }
 
   startRotation() {
-    chrome.runtime.sendMessage({ action: 'rotateTabs' });
-    this.isRotating = true;
+    if (this.isRotationDisabled) {
+      return;
+    }
+    this.isRotationDisabled = true;
+    chrome.runtime.sendMessage({ action: 'rotateTabs' }).finally(() => {
+      this.isRotating = true;
+      this.isRotationDisabled = false;
+      this.cdr.detectChanges();
+    });
   }
 
   stopRotation() {
-    chrome.runtime.sendMessage({ action: 'stopRotation' });
-    this.isRotating = false;
+    if (this.isRotationDisabled) {
+      return;
+    }
+    this.isRotationDisabled = true;
+    chrome.runtime.sendMessage({ action: 'stopRotation' }).finally(() => {
+      this.isRotating = false;
+      this.isRotationDisabled = false;
+      this.cdr.detectChanges();
+    });
   }
 
   onChangeUseRemoteConfig(useRemoteConfig: boolean) {
@@ -86,8 +100,7 @@ export class AppComponent implements OnInit {
 
   onChangeLocalConfig(localConfig: ConfigData) {
     chrome.storage.local.set({ [StorageKeys.LocalConfig]: localConfig }, () => {
-      //this.localConfig = localConfig;
-      console.log('Local configuration saved', localConfig);
+      console.debug('Local configuration saved', localConfig);
     });
   }
 
@@ -95,8 +108,7 @@ export class AppComponent implements OnInit {
     chrome.storage.local.set(
       { [StorageKeys.RemoteSettings]: remoteSettings },
       () => {
-        //this.remoteSettings = remoteSettings;
-        console.log('Settings for loading remote configuration was saved');
+        console.debug('Settings for loading remote configuration was saved');
       }
     );
   }
@@ -105,7 +117,7 @@ export class AppComponent implements OnInit {
     chrome.storage.local.set(
       { [StorageKeys.RemoteConfig]: remoteConfig },
       () => {
-        console.log('Remote configuration saved', remoteConfig);
+        console.debug('Remote configuration saved', remoteConfig);
       }
     );
   }
@@ -124,7 +136,7 @@ export class AppComponent implements OnInit {
     chrome.storage.local.get([StorageKeys.UseRemoteConfig], (result) => {
       this.useRemoteConfig = result?.[StorageKeys.UseRemoteConfig] ?? false; // Default to false if not set
       this.loadStoredConfigData(this.useRemoteConfig);
-      console.log('Use remote config flag loaded', this.useRemoteConfig);
+      console.debug('Use remote config flag loaded', this.useRemoteConfig);
       this.cdr.detectChanges();
     });
   }
@@ -134,7 +146,7 @@ export class AppComponent implements OnInit {
       this.remoteSettings =
         (result?.[StorageKeys.RemoteSettings] as RemoteSettings) ||
         new RemoteSettings();
-      console.log(
+      console.debug(
         'Settings for loading remote configuration loaded',
         this.remoteSettings
       );
@@ -146,7 +158,7 @@ export class AppComponent implements OnInit {
     chrome.storage.local.get([StorageKeys.LocalConfig], (result) => {
       this.localConfig =
         (result?.[StorageKeys.LocalConfig] as ConfigData) || new ConfigData();
-      console.log('Local configuration loaded', this.localConfig);
+      console.debug('Local configuration loaded', this.localConfig);
       this.cdr.detectChanges();
     });
   }
@@ -155,16 +167,6 @@ export class AppComponent implements OnInit {
     chrome.runtime.sendMessage({ action: 'getRotationState' }, (response) => {
       this.isRotating = response.isRotating;
       this.cdr.detectChanges();
-    });
-  }
-
-  private listenForRotationState() {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.action === 'rotationState') {
-        this.isRotating = message.isRotating;
-        this.cdr.detectChanges();
-      }
-      return true; // Indicate that we will send a response asynchronously
     });
   }
 }
