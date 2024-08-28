@@ -5,8 +5,8 @@ export class RemoteSettings {
   configUrl: string = '';
 
   /**
-   * Interval in minutes to reload the configuration.
-   * If set to 0, the configuration will not be reloaded.
+   * Interval in minutes for reloading the configuration.
+   * If set to 0, the configuration will not reload.
    */
   configReloadIntervalMinutes: number = 0;
 

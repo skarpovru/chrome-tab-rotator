@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Tabs Rotator",
+  "name": "Tabs Rotator / Slideshow",
+  "short_name": "Tabs Rotator",
   "version": "1.0",
   "description": "Rotate through a set of URLs at specified intervals.",
-  "permissions": ["tabs", "storage", "activeTab", "webNavigation", "scripting"],
+  "permissions": ["tabs", "storage", "activeTab", "webNavigation"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

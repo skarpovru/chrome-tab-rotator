@@ -1,15 +1,15 @@
-# Chrome Tabs Rotator / Slideshow
+# Tabs Rotator / Slideshow
 
 ## Overview
 
-Chrome Tabs Rotator automatically loads URLs in new tabs and display them as a slideshow. It is useful for displaying dashboards, monitoring tools, presentations, advertisements, reports, marketing, or any other web pages that need to be cycled through regularly on a screen.
+Tabs Rotator automatically loads URLs in new tabs and displays them as slideshows. It is useful for displaying dashboards, monitoring tools, presentations, advertisements, reports, marketing, or any other web pages that need to be cycled through regularly on a screen.
 
 ## Features
 
 - Switch between tabs with web pages from the Internet or on your local PC using `file://` links.
 - Set display time and reload interval for each URL.
-- Manage configuration in the extension or load from a remote URL with automatic updates.
-- Import and export local configuration to a file.
+- Manage configuration in the extension with import and export support.
+- Load configuration from a remote URL with automatic updates. You can use a free online JSON storage (e.g. JSON Silo, n:point, Pantry).
 - Automatically retries loading links if errors occur and skips failed pages until they are available again.
 - It continues to work after the browser restarts and prevents tab spamming.
 - Offline support. Keeps the previous page version if the page update fails.
@@ -18,6 +18,25 @@ Chrome Tabs Rotator automatically loads URLs in new tabs and display them as a s
 
 ![Local Configuration](screenshots/local_configuration.png)
 ![Remote Configuration](screenshots/remote_configuration.png)
+
+## Page Configuration Options
+
+| Name | Description | JSON Option | Type |
+| --- | --- | --- | --- |
+| URL | The link to the page to display. Can be remote (starting with `https://`) or local (starting with `file://`). | url | String |
+| Display Time | The time in seconds that the page is displayed. | delaySeconds | Number |
+| Reload After | Page reload interval in seconds. If set to `0`, the page will not reload. | reloadIntervalSeconds | Number |
+
+## Remote Configuration Options
+
+| Name | Description | Type |
+| --- | --- | --- |
+| Configuration URL | URL to fetch the configuration from. | String |
+| Reload Interval | Interval in minutes for reloading the configuration. If set to `0`, the configuration will not reload. | Number |
+
+## Configuration Sample
+
+[tabs-rotator-config.json](https://api.jsonsilo.com/public/e683a7af-7366-4db0-94fe-3438c9f64092)
 
 ## Support
 
