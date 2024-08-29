@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "ng build --watch --configuration development",
-    "build": "ng build && node zip.js"
+    "build": "ng build && node scripts/zip.js"
   },
   "private": true,
   "dependencies": {

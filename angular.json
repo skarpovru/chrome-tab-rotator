@@ -47,7 +47,7 @@
               }
             },
             "customWebpackConfig": {
-              "path": "./custom-webpack.config.ts"
+              "path": "./scripts/custom-webpack.config.ts"
             }
           },
           "configurations": {
@@ -71,7 +71,7 @@
               "extractLicenses": false,
               "sourceMap": true,
               "customWebpackConfig": {
-                "path": "./custom-webpack-dev.config.ts"
+                "path": "./scripts/custom-webpack-dev.config.ts"
               }
             }
           },
