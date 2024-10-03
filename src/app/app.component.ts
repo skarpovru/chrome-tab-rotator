@@ -87,6 +87,7 @@ export class AppComponent implements OnInit {
         this.configLoaderService.loadFromFile(file, false).subscribe({
           next: (config) => {
             this.localConfig = config;
+            this.onChangeLocalConfig(config);
             this.cdr.detectChanges();
           },
           error: (error) => {

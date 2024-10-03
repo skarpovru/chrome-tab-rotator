@@ -355,7 +355,7 @@ export class RotationService {
     }
 
     if (!this.tabsConfig || !(this.tabsConfig.tabs?.length > 0)) {
-      console.error('Configuration is not loaded properly.');
+      console.error('Configuration is not loaded properly.', this.tabsConfig);
       await this.stopRotation();
       return;
     }
