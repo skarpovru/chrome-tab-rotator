@@ -24,6 +24,7 @@ export class AppComponent implements OnInit {
   remoteSettings?: RemoteSettings;
   useRemoteConfig: boolean = false;
   isRotationDisabled: boolean = false;
+  allowFileSchemeAccessMessage: boolean = false;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -33,6 +34,11 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     this.loadStoredAppConfig();
     this.queryRotationState();
+    chrome.extension.isAllowedFileSchemeAccess((isAllowed) => {
+      console.debug('File scheme access allowed:', isAllowed);
+      this.allowFileSchemeAccessMessage = !isAllowed;
+      this.cdr.detectChanges();
+    });
   }
 
   startRotation() {
@@ -86,9 +92,7 @@ export class AppComponent implements OnInit {
       if (file) {
         this.configLoaderService.loadFromFile(file, false).subscribe({
           next: (config) => {
-            this.localConfig = config;
-            this.onChangeLocalConfig(config);
-            this.cdr.detectChanges();
+            this.onChangeLocalConfig(config, () => this.cdr.detectChanges());
           },
           error: (error) => {
             console.error('Error importing the configuration file', error);
@@ -99,9 +103,11 @@ export class AppComponent implements OnInit {
     input.click();
   }
 
-  onChangeLocalConfig(localConfig: ConfigData) {
+  onChangeLocalConfig(localConfig: ConfigData, onChanged?: () => void) {
     chrome.storage.local.set({ [StorageKeys.LocalConfig]: localConfig }, () => {
+      this.localConfig = localConfig;
       console.debug('Local configuration saved', localConfig);
+      onChanged?.();
     });
   }
 

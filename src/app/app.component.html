@@ -66,4 +66,14 @@
       (valueChanges)="onChangeRemoteConfig($event)"
     ></app-config-loader>
   </div>
+
+  <div
+    id="allowFileSchemeAccess"
+    class="flex text-md"
+    *ngIf="allowFileSchemeAccessMessage"
+  >
+    If you need to run on file:// URLs, please allow this access explicitly.<br />
+    Right-click the extension icon, choose Manage Extension and scroll down to
+    enable access to file URLs.
+  </div>
 </div>
