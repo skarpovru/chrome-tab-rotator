@@ -4,7 +4,7 @@
   "short_name": "Tabs Rotator",
   "version": "1.1",
   "description": "Rotate through a set of URLs at specified intervals.",
-  "permissions": ["tabs", "storage", "activeTab", "webNavigation", "scripting"],
+  "permissions": ["tabs", "storage", "activeTab", "webNavigation"],
   "host_permissions": [
         "*://*/*"
     ],

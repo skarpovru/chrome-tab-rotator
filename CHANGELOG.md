@@ -4,8 +4,7 @@
 
 - Initial release.
 
-## [1.1] - 2024-10-04
+## [1.1] - 2024-10-07
 
-- Fixed issue with tabs switch due to missing by adding scripting permission.
 - Immediately save imported configuration into the browser storage.
 - Added "Allow access to file URLs" activation instruction.
